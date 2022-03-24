@@ -3,7 +3,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:grpc/grpc.dart';
 import 'package:http/http.dart' as http;
+import 'package:myapp/grpc/helloworld/hello_world.pbgrpc.dart';
 
 void main() {
   runApp(MyApp());
@@ -61,6 +63,12 @@ class _MyHomePageState extends State<MyHomePage> {
     }));
   }
 
+  void _gotoThirdPage() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) {
+      return ThirdPage();
+    }));
+  }
+
   @override
   Widget build(BuildContext context) {
     final ButtonStyle style =
@@ -98,6 +106,12 @@ class _MyHomePageState extends State<MyHomePage> {
               style: style,
               onPressed: _gotoSecondPage,
               child: const Text('画面２に遷移する'),
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              style: style,
+              onPressed: _gotoThirdPage,
+              child: const Text('画面３に遷移する'),
             ),
           ],
         ),
@@ -194,6 +208,86 @@ class Album {
       userId: json['userId'],
       id: json['id'],
       title: json['title'],
+    );
+  }
+}
+
+class ThirdPage extends StatefulWidget {
+  const ThirdPage({Key? key}) : super(key: key);
+
+  @override
+  _ThirdPageState createState() => _ThirdPageState();
+}
+
+class _ThirdPageState extends State<ThirdPage> {
+  late Future<String> futureSayHello;
+
+  Future<String> sayHello() async {
+    final channel = ClientChannel(
+      '10.0.2.2',
+      port: 8081,
+      options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
+    );
+    final stub = GreeterClient(channel);
+
+    final name = 'hello';
+
+    String result = '';
+    try {
+      var response = await stub.sayHello(HelloRequest()..name = name);
+      print('Greeter client received: ${response.message}');
+      result = response.message;
+    } catch (e) {
+      print('Caught error: $e');
+    }
+    await channel.shutdown();
+
+    return result;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    futureSayHello = sayHello();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ButtonStyle style =
+        ElevatedButton.styleFrom(textStyle: const TextStyle(fontSize: 20));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('画面３'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            FutureBuilder<String>(
+              future: futureSayHello,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return Text(snapshot.data!);
+                } else if (snapshot.hasError) {
+                  return Text("${snapshot.error}");
+                }
+
+                // By default, show a loading spinner.
+                return CircularProgressIndicator();
+              },
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              style: style,
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('ホーム画面に戻る'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
