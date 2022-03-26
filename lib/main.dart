@@ -224,8 +224,8 @@ class _ThirdPageState extends State<ThirdPage> {
 
   Future<String> sayHello() async {
     final channel = ClientChannel(
-      '10.0.2.2',
-      port: 8081,
+      '127.0.0.1',
+      port: 50051,
       options: const ChannelOptions(credentials: ChannelCredentials.insecure()),
     );
     final stub = GreeterClient(channel);
